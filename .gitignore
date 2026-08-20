@@ -31,3 +31,7 @@ yarn-error.log*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local / Private Logs
+ACTION_LOG.md
+*.log
