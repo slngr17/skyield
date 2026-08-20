@@ -74,6 +74,19 @@ npm run dev
 
 The frontend runs on `http://localhost:5173` and proxies API calls to `http://localhost:8000`.
 
+## ☁️ Deploying to Vercel
+
+### Deploy Frontend
+1. Go to [vercel.com/new](https://vercel.com/new) and import **`slngr17/skyield`**.
+2. In the configuration settings:
+   - **Root Directory:** Select **`frontend`** (click Edit and choose `frontend`).
+   - **Framework Preset:** Vite (detected automatically).
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+3. Under **Environment Variables**, add:
+   - `VITE_API_URL`: URL of your deployed backend (e.g. `https://your-backend.onrender.com` or `https://your-backend.railway.app`).
+4. Click **Deploy**. Vercel will build and assign your live URL!
+
 ## 📡 API Endpoints
 
 | Method | Endpoint | Description |
