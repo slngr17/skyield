@@ -93,14 +93,17 @@ export function calculateLocal({
   annual_rainfall_mm = 1200,
   shading_factor = 0.0,
   panel_wattage = 400,
-  panel_efficiency = 0.18,
+  panel_efficiency,
   system_performance_ratio = 0.75,
   runoff_coefficient = 0.85,
 }) {
+  const panel_area = 2.0; // Standard 400W panel size in m²
+  const eff = panel_efficiency || (panel_wattage / (panel_area * 1000)); // ~20.0% for 400W
+
   const daily_yield =
     usable_area_sqm *
     annual_avg_ghi_kwh_m2_day *
-    panel_efficiency *
+    eff *
     system_performance_ratio *
     (1 - shading_factor);
 
@@ -110,14 +113,14 @@ export function calculateLocal({
   const rainwater = usable_area_sqm * annual_rainfall_mm * runoff_coefficient;
   const carbon_offset = annual_yield * 0.42;
 
-  const panel_area = 2.0;
   const num_panels = Math.max(1, Math.ceil(usable_area_sqm / panel_area));
   const total_system_kw = (num_panels * panel_wattage) / 1000.0;
-  const inverter_size_kw = total_system_kw * 1.2;
+  // Inverter Loading Ratio (ILR): standard inverter is sized to 85-90% of DC capacity for peak efficiency
+  const inverter_size_kw = Math.max(1.0, Math.round(total_system_kw * 0.9 * 10) / 10);
   const battery_capacity_kwh = daily_yield * 0.5;
 
-  const cost_low = Math.round(total_system_kw * 1000 * 2.2);
-  const cost_high = Math.round(total_system_kw * 1000 * 3.2);
+  const cost_low = Math.round(total_system_kw * 1000 * 2.0);
+  const cost_high = Math.round(total_system_kw * 1000 * 3.0);
 
   return {
     solar_yield_kwh_month: Math.round(monthly_yield * 10) / 10,
@@ -128,7 +131,7 @@ export function calculateLocal({
       num_panels,
       panel_wattage_w: panel_wattage,
       total_system_kw: Math.round(total_system_kw * 10) / 10,
-      inverter_size_kw: Math.round(inverter_size_kw * 10) / 10,
+      inverter_size_kw,
       battery_capacity_kwh: Math.round(battery_capacity_kwh * 10) / 10,
       estimated_cost_usd: `$${cost_low.toLocaleString()} - $${cost_high.toLocaleString()}`,
     },

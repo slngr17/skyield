@@ -182,9 +182,13 @@ async def analyze_roof(lat: float = Form(...), lon: float = Form(...), file: Upl
 @app.post("/api/calculate", response_model=CalculationResponse)
 async def calculate_solar(req: CalculationRequest):
     try:
+        panel_area = 2.0
+        num_panels = max(1, math.ceil(req.usable_area_sqm / panel_area))
+        eff = req.panel_efficiency if req.panel_efficiency else (req.panel_wattage / (panel_area * 1000.0))
+        
         # daily_yield = area * ghi * efficiency * performance_ratio * (1 - shading_factor)
         daily_yield = (req.usable_area_sqm * req.annual_avg_ghi_kwh_m2_day * 
-                       req.panel_efficiency * req.system_performance_ratio * 
+                       eff * req.system_performance_ratio * 
                        (1 - req.shading_factor))
         monthly_yield = daily_yield * 30
         annual_yield = daily_yield * 365
@@ -195,16 +199,13 @@ async def calculate_solar(req: CalculationRequest):
         # carbon_offset = annual_yield * 0.42 (kg CO2e)
         carbon_offset = annual_yield * 0.42
         
-        panel_area = 2.0
-        num_panels = math.ceil(req.usable_area_sqm / panel_area)
-        
         total_system_kw = (num_panels * req.panel_wattage) / 1000.0
-        inverter_size = total_system_kw * 1.2
-        battery_kwh = daily_yield * 0.5
+        inverter_size = round(max(1.0, total_system_kw * 0.9), 1)
+        battery_kwh = round(daily_yield * 0.5, 1)
         
-        estimated_cost_low = int(total_system_kw * 1000 * 2.5)
-        estimated_cost_high = int(total_system_kw * 1000 * 3.5)
-        cost_str = f"${estimated_cost_low} - ${estimated_cost_high}"
+        estimated_cost_low = int(total_system_kw * 1000 * 2.0)
+        estimated_cost_high = int(total_system_kw * 1000 * 3.0)
+        cost_str = f"${estimated_cost_low:,} - ${estimated_cost_high:,}"
         
         hw = HardwareRecommendation(
             num_panels=num_panels,

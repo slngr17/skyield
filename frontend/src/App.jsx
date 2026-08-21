@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sun, MapPin, Camera, Loader2, AlertCircle, Globe } from 'lucide-react';
 import MapPicker from './components/MapPicker';
 import ImageUploader from './components/ImageUploader';
@@ -12,11 +12,9 @@ export default function App() {
   const [imagePreview, setImagePreview] = useState(null);
   const [solarData, setSolarData] = useState(null);
   const [roofAnalysis, setRoofAnalysis] = useState(null);
-  const [results, setResults] = useState(null);
   const [areaOverride, setAreaOverride] = useState(50);
   const [loadingSolar, setLoadingSolar] = useState(false);
   const [loadingRoof, setLoadingRoof] = useState(false);
-  const [loadingCalc, setLoadingCalc] = useState(false);
   const [error, setError] = useState(null);
 
   // Fetch solar data when location changes
@@ -41,43 +39,34 @@ export default function App() {
     return () => { cancelled = true; };
   }, [location]);
 
-  // Auto-calculate when solar data or area changes
-  useEffect(() => {
-    if (!solarData) return;
-    let cancelled = false;
-
-    async function calculate() {
-      setLoadingCalc(true);
-      try {
-        const area = areaOverride;
-        const shading = roofAnalysis ? roofAnalysis.shading_factor : 0.0;
-        const data = await api.calculate({
-          usable_area_sqm: area,
-          annual_avg_ghi_kwh_m2_day: solarData.annual_avg_ghi_kwh_m2_day,
-          annual_rainfall_mm: solarData.annual_rainfall_mm,
-          shading_factor: shading,
-        });
-        if (!cancelled) setResults(data);
-      } catch (err) {
-        if (!cancelled) setError('Calculation failed. Please try again.');
-      } finally {
-        if (!cancelled) setLoadingCalc(false);
-      }
-    }
-
-    calculate();
-    return () => { cancelled = true; };
+  // Instantaneous 60fps calculation using useMemo
+  const results = useMemo(() => {
+    if (!solarData) return null;
+    const area = areaOverride;
+    const shading = roofAnalysis ? roofAnalysis.shading_factor : 0.0;
+    return api.calculate({
+      usable_area_sqm: area,
+      annual_avg_ghi_kwh_m2_day: solarData.annual_avg_ghi_kwh_m2_day,
+      annual_rainfall_mm: solarData.annual_rainfall_mm,
+      shading_factor: shading,
+    });
   }, [solarData, areaOverride, roofAnalysis]);
 
-  // Handle file upload
+  // Handle file upload with memory management
   const handleFileSelect = useCallback((file) => {
     setUploadedFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
   }, []);
 
   const handleClearImage = useCallback(() => {
+    setImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setUploadedFile(null);
-    setImagePreview(null);
     setRoofAnalysis(null);
   }, []);
 
@@ -106,7 +95,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, [uploadedFile, location]);
 
-  const isLoading = loadingSolar || loadingRoof || loadingCalc;
+  const isLoading = loadingSolar || loadingRoof;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -213,12 +202,6 @@ export default function App() {
 
               {results && (
                 <div className="space-y-6">
-                  {loadingCalc && (
-                    <div className="flex items-center gap-2 text-emerald-400 text-sm">
-                      <Loader2 size={14} className="animate-spin" />
-                      Recalculating...
-                    </div>
-                  )}
                   <ResultsDashboard
                     results={results}
                     roofAnalysis={roofAnalysis}
