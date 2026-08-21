@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { useState, useCallback, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { Search, Navigation, Layers, Loader2 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -12,6 +13,20 @@ L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
+
+// Controls map view transitions programmatically
+function MapController({ targetCenter, targetZoom }) {
+  const map = useMap();
+  useEffect(() => {
+    if (targetCenter) {
+      map.flyTo(targetCenter, targetZoom || map.getZoom(), {
+        duration: 1.2,
+        easeLinearity: 0.25,
+      });
+    }
+  }, [targetCenter, targetZoom, map]);
+  return null;
+}
 
 function LocationMarker({ position, onLocationSelect }) {
   useMapEvents({
@@ -38,6 +53,11 @@ function LocationMarker({ position, onLocationSelect }) {
 
 export default function MapPicker({ onLocationSelect }) {
   const [position, setPosition] = useState(null);
+  const [targetView, setTargetView] = useState(null);
+  const [mapType, setMapType] = useState('satellite'); // 'satellite' | 'streets'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   const handleLocationSelect = useCallback(
     (loc) => {
@@ -47,34 +67,155 @@ export default function MapPicker({ onLocationSelect }) {
     [onLocationSelect]
   );
 
+  // Address search via Nominatim
+  const handleSearch = async (e) => {
+    e?.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    setSearchError('');
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          searchQuery
+        )}&limit=1`
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        setTargetView({ center: [lat, lon], zoom: 17 });
+        handleLocationSelect({ lat, lng: lon });
+      } else {
+        setSearchError('Location not found. Try a city or address.');
+      }
+    } catch {
+      setSearchError('Search request failed. Please drop a pin.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Browser Geolocation
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      setSearchError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setIsSearching(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setTargetView({ center: [latitude, longitude], zoom: 18 });
+        handleLocationSelect({ lat: latitude, lng: longitude });
+        setIsSearching(false);
+      },
+      () => {
+        setSearchError('Unable to retrieve location permission.');
+        setIsSearching(false);
+      },
+      { timeout: 8000 }
+    );
+  };
+
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-white/10">
-      <MapContainer
-        center={[20, 0]}
-        zoom={3}
-        style={{ height: '400px', width: '100%' }}
-        className="z-0"
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <LocationMarker position={position} onLocationSelect={handleLocationSelect} />
-      </MapContainer>
+    <div className="space-y-2">
+      {/* Search and Quick Action Toolbar */}
+      <div className="flex gap-2">
+        <form onSubmit={handleSearch} className="flex-1 relative flex items-center">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search address, city, or neighborhood..."
+            className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2 pl-9 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
+          />
+          <Search size={15} className="absolute left-3 text-gray-400 pointer-events-none" />
+          {isSearching && (
+            <Loader2 size={15} className="absolute right-3 text-emerald-400 animate-spin" />
+          )}
+        </form>
 
-      {position && (
-        <div className="absolute bottom-3 left-3 z-[1000] bg-black/70 backdrop-blur-sm text-sm px-3 py-1.5 rounded-lg text-emerald-300 font-mono">
-          {position[0].toFixed(4)}°, {position[1].toFixed(4)}°
-        </div>
+        <button
+          type="button"
+          onClick={handleLocateMe}
+          title="Use current GPS location"
+          className="bg-white/5 hover:bg-white/15 border border-white/15 px-3 py-2 rounded-xl text-gray-300 hover:text-emerald-400 flex items-center gap-1.5 text-xs font-medium transition-colors"
+        >
+          <Navigation size={14} className="text-emerald-400" />
+          <span className="hidden sm:inline">My Location</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMapType(mapType === 'satellite' ? 'streets' : 'satellite')}
+          className="bg-white/5 hover:bg-white/15 border border-white/15 px-3 py-2 rounded-xl text-gray-300 hover:text-emerald-400 flex items-center gap-1.5 text-xs font-medium transition-colors"
+        >
+          <Layers size={14} className="text-amber-400" />
+          <span>{mapType === 'satellite' ? '🛰️ Satellite' : '🗺️ Streets'}</span>
+        </button>
+      </div>
+
+      {searchError && (
+        <p className="text-xs text-red-400 px-1">{searchError}</p>
       )}
 
-      {!position && (
-        <div className="absolute inset-0 z-[1000] flex items-center justify-center pointer-events-none">
-          <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded-xl text-sm text-gray-300">
-            Click anywhere on the map to drop a pin
+      {/* Map Container with GTA-Style Viewport Memory Pruning */}
+      <div className="relative rounded-2xl overflow-hidden border border-white/15 shadow-xl shadow-black/40">
+        <MapContainer
+          center={[15, 5]}
+          zoom={3}
+          style={{ height: '420px', width: '100%' }}
+          className="z-0"
+        >
+          {targetView && (
+            <MapController
+              targetCenter={targetView.center}
+              targetZoom={targetView.zoom}
+            />
+          )}
+
+          {/* High-Resolution Google Hybrid Satellite Layer with aggressive viewport memory pruning */}
+          {mapType === 'satellite' ? (
+            <TileLayer
+              attribution='&copy; Google Maps'
+              url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+              maxNativeZoom={20}
+              maxZoom={21}
+              keepBuffer={1}
+              updateWhenIdle={true}
+              updateWhenZooming={false}
+            />
+          ) : (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxNativeZoom={19}
+              maxZoom={20}
+              keepBuffer={1}
+              updateWhenIdle={true}
+              updateWhenZooming={false}
+            />
+          )}
+
+          <LocationMarker position={position} onLocationSelect={handleLocationSelect} />
+        </MapContainer>
+
+        {/* Floating Coordinates & Layer Badge */}
+        {position && (
+          <div className="absolute bottom-3 left-3 z-[1000] bg-black/80 backdrop-blur-md text-xs px-3 py-1.5 rounded-lg text-emerald-400 font-mono border border-white/10 shadow-lg">
+            📍 {position[0].toFixed(4)}°, {position[1].toFixed(4)}°
           </div>
-        </div>
-      )}
+        )}
+
+        {!position && (
+          <div className="absolute inset-0 z-[1000] flex items-center justify-center pointer-events-none">
+            <div className="bg-black/75 backdrop-blur-md px-4 py-2.5 rounded-xl text-xs sm:text-sm text-gray-200 border border-white/10 shadow-2xl animate-pulse">
+              🎯 Search an address or click on any rooftop
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
