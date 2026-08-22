@@ -174,10 +174,10 @@ export default function ResultsDashboard({ results, roofAnalysis, solarData, loc
                 <span>Est. Bill Savings</span>
               </div>
               <p className="text-lg font-bold text-amber-300">
-                ${results.impact.annual_savings_usd.toLocaleString()}
+                {results.impact.annual_savings_formatted}
                 <span className="text-xs font-normal text-gray-400 ml-1">/year</span>
               </p>
-              <p className="text-[10px] text-gray-500 mt-0.5">at standard utility tariff</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">at regional utility tariff</p>
             </div>
 
             <div className="bg-white/5 rounded-xl p-3 border border-white/5">

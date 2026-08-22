@@ -6,6 +6,7 @@ import HardwareCustomizer from './components/HardwareCustomizer';
 import ResultsDashboard from './components/ResultsDashboard';
 import Logo from './components/Logo';
 import { api, calculateLocal } from './services/api';
+import { CURRENCY_MAP, getCurrencyForCoordinates } from './utils/currency';
 
 export default function App() {
   const [location, setLocation] = useState(null);
@@ -17,14 +18,22 @@ export default function App() {
   const [panelWattage, setPanelWattage] = useState(400);
   const [inverterType, setInverterType] = useState('string');
   const [customPanelCount, setCustomPanelCount] = useState(null);
+  const [currency, setCurrency] = useState(CURRENCY_MAP.USD);
   const [loadingSolar, setLoadingSolar] = useState(false);
   const [loadingRoof, setLoadingRoof] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch solar data when location changes
+  // Fetch solar data & detect localized currency when location changes
   useEffect(() => {
     if (!location) return;
     let cancelled = false;
+
+    // Detect country currency for the pin location
+    getCurrencyForCoordinates(location.lat, location.lng).then((detectedCurr) => {
+      if (!cancelled && detectedCurr) {
+        setCurrency(detectedCurr);
+      }
+    });
 
     async function fetchSolar() {
       setLoadingSolar(true);
@@ -56,8 +65,9 @@ export default function App() {
       panel_wattage: panelWattage,
       inverter_type: inverterType,
       custom_panel_count: customPanelCount,
+      currency: currency,
     });
-  }, [solarData, areaOverride, roofAnalysis, panelWattage, inverterType, customPanelCount]);
+  }, [solarData, areaOverride, roofAnalysis, panelWattage, inverterType, customPanelCount, currency]);
 
   // Handle file upload with memory management
   const handleFileSelect = useCallback((file) => {
@@ -107,12 +117,32 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 py-5 px-6 shadow-lg shadow-emerald-950/30 border-b border-emerald-500/20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Logo className="w-11 h-11" withText={true} />
-          <div className="hidden sm:flex items-center gap-2 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs text-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Live Microclimate Engine</span>
+      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 py-4 px-6 shadow-lg shadow-emerald-950/30 border-b border-emerald-500/20">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <Logo className="w-10 h-10" withText={true} />
+          
+          <div className="flex items-center gap-3">
+            {/* Currency Selector */}
+            <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/15 text-xs text-emerald-100">
+              <span className="text-[11px] text-emerald-300 font-medium hidden sm:inline">Currency:</span>
+              <select
+                value={currency.code}
+                onChange={(e) => setCurrency(CURRENCY_MAP[e.target.value] || CURRENCY_MAP.USD)}
+                className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer [&>option]:bg-gray-900 [&>option]:text-white"
+                title="Auto-detected from pin location, or select manually"
+              >
+                {Object.values(CURRENCY_MAP).map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.symbol} {c.code} — {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs text-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Live Microclimate</span>
+            </div>
           </div>
         </div>
       </header>
@@ -160,6 +190,8 @@ export default function App() {
                     onInverterTypeChange={setInverterType}
                     customPanelCount={customPanelCount}
                     onCustomPanelCountChange={setCustomPanelCount}
+                    currency={currency}
+                    onCurrencyChange={setCurrency}
                     hardwareResults={results?.hardware}
                   />
                 </section>

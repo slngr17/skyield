@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { CURRENCY_MAP, formatCurrency, formatCurrencyRange } from '../utils/currency';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -95,6 +96,7 @@ export function calculateLocal({
   panel_wattage = 400,
   custom_panel_count = null,
   inverter_type = 'string', // 'string' | 'hybrid' | 'micro'
+  currency = CURRENCY_MAP.USD,
   system_performance_ratio = 0.75,
   runoff_coefficient = 0.85,
 }) {
@@ -142,24 +144,29 @@ export function calculateLocal({
   const battery_capacity_kwh = daily_yield * (inverter_type === 'hybrid' ? 0.8 : 0.5);
 
   // Turnkey installed system cost based on NREL/IRENA benchmarks
-  const cost_low = Math.round(total_system_kw * 1000 * invConfig.costLow);
-  const cost_high = Math.round(total_system_kw * 1000 * invConfig.costHigh);
+  const cost_low_usd = Math.round(total_system_kw * 1000 * invConfig.costLow);
+  const cost_high_usd = Math.round(total_system_kw * 1000 * invConfig.costHigh);
 
   const trees_equivalent = Math.max(1, Math.round(carbon_offset / 21.77));
-  const avg_tariff_per_kwh = 0.16; // USD baseline global average
-  const annual_savings_usd = Math.round(annual_yield * avg_tariff_per_kwh);
-  const avg_cost = (cost_low + cost_high) / 2;
-  const payback_years = annual_savings_usd > 0 ? Math.max(2.0, Math.round((avg_cost / annual_savings_usd) * 10) / 10) : 5.0;
+  const avg_tariff_per_kwh_usd = 0.16; // USD baseline global average
+  const annual_savings_usd = Math.round(annual_yield * avg_tariff_per_kwh_usd);
+  const avg_cost_usd = (cost_low_usd + cost_high_usd) / 2;
+  const payback_years = annual_savings_usd > 0 ? Math.max(2.0, Math.round((avg_cost_usd / annual_savings_usd) * 10) / 10) : 5.0;
   const water_independence_days = Math.round(rainwater / 150); // ~150L/day household water usage
+
+  const activeCurrency = currency || CURRENCY_MAP.USD;
 
   return {
     solar_yield_kwh_month: Math.round(monthly_yield * 10) / 10,
     solar_yield_kwh_year: Math.round(annual_yield * 10) / 10,
     rainwater_capture_liters_year: Math.round(rainwater),
     carbon_offset_kg_year: Math.round(carbon_offset * 10) / 10,
+    currency: activeCurrency,
     impact: {
       trees_equivalent,
       annual_savings_usd,
+      annual_savings_local: Math.round(annual_savings_usd * activeCurrency.rate),
+      annual_savings_formatted: `${activeCurrency.symbol}${Math.round(annual_savings_usd * activeCurrency.rate).toLocaleString()}`,
       payback_years,
       water_independence_days,
     },
@@ -174,8 +181,10 @@ export function calculateLocal({
       total_system_kw: Math.round(total_system_kw * 10) / 10,
       inverter_size_kw,
       battery_capacity_kwh: Math.round(battery_capacity_kwh * 10) / 10,
-      estimated_cost_usd: `$${cost_low.toLocaleString()} - $${cost_high.toLocaleString()}`,
-      cost_benchmark_note: 'Based on NREL & IRENA global residential turnkey PV standards ($2.00–$3.40/W installed).',
+      cost_low_usd,
+      cost_high_usd,
+      estimated_cost_usd: formatCurrencyRange(cost_low_usd, cost_high_usd, activeCurrency),
+      cost_benchmark_note: `Based on NREL & IRENA global residential turnkey PV standards ($2.00–$3.40/W installed in ${activeCurrency.code}).`,
     },
   };
 }
