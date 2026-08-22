@@ -96,6 +96,26 @@ export default function MapPicker({ onLocationSelect }) {
     }
   };
 
+  // IP-based geolocation fallback
+  const ipGeoFallback = async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) throw new Error('IP geolocation failed');
+      const data = await res.json();
+      if (data.latitude && data.longitude) {
+        setTargetView({ center: [data.latitude, data.longitude], zoom: 14 });
+        handleLocationSelect({ lat: data.latitude, lng: data.longitude });
+        setSearchError('GPS unavailable — showing approximate location via IP.');
+      } else {
+        throw new Error('No coordinates');
+      }
+    } catch {
+      setSearchError('Could not determine your location. Try searching for an address instead.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   // Browser Geolocation
   const handleLocateMe = () => {
     if (!navigator.geolocation) {
@@ -103,6 +123,7 @@ export default function MapPicker({ onLocationSelect }) {
       return;
     }
     setIsSearching(true);
+    setSearchError('');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -110,11 +131,26 @@ export default function MapPicker({ onLocationSelect }) {
         handleLocationSelect({ lat: latitude, lng: longitude });
         setIsSearching(false);
       },
-      () => {
-        setSearchError('Unable to retrieve location permission.');
-        setIsSearching(false);
+      (err) => {
+        switch (err.code) {
+          case 1: // PERMISSION_DENIED
+            setSearchError('Location permission denied. Please allow location access in your browser settings.');
+            setIsSearching(false);
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            // GPS/hardware failed — try IP-based fallback
+            ipGeoFallback();
+            break;
+          case 3: // TIMEOUT
+            setSearchError('Location request timed out. Trying approximate location...');
+            ipGeoFallback();
+            break;
+          default:
+            setSearchError('An unknown location error occurred.');
+            setIsSearching(false);
+        }
       },
-      { timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
   };
 
