@@ -11,3 +11,39 @@
     @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
   }
 }
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .glass-card {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  header {
+    background: #047857 !important;
+    color: #ffffff !important;
+    padding: 12px 24px !important;
+  }
+
+  footer {
+    border-top: 1px solid #e2e8f0 !important;
+    color: #64748b !important;
+  }
+
+  .text-gray-200, .text-gray-300, .text-gray-400 {
+    color: #334155 !important;
+  }
+
+  .text-gray-500, .text-gray-600 {
+    color: #64748b !important;
+  }
+}

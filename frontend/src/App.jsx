@@ -128,8 +128,8 @@ export default function App() {
       <main className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Map + Upload */}
-            <div className="lg:col-span-5 space-y-6">
+            {/* Left Column: Map + Upload (Hidden in print/export report) */}
+            <div className="lg:col-span-5 space-y-6 print:hidden">
               {/* Map Section */}
               <section>
                 <div className="flex items-center gap-2 mb-3">
@@ -167,8 +167,8 @@ export default function App() {
               )}
             </div>
 
-            {/* Right Column: Results */}
-            <div className="lg:col-span-7">
+            {/* Right Column: Results (Full-width in print report) */}
+            <div className="lg:col-span-7 print:col-span-12 print:w-full">
               {!location && !isLoading && (
                 <div className="glass-card p-12 flex flex-col items-center justify-center text-center h-full min-h-[400px]">
                   <Sun size={48} className="text-gray-700 mb-4" />
@@ -201,6 +201,8 @@ export default function App() {
                     results={results}
                     roofAnalysis={roofAnalysis}
                     solarData={solarData}
+                    location={location}
+                    areaOverride={areaOverride}
                   />
                 </div>
               )}

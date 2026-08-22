@@ -45,17 +45,58 @@ function IrradianceChart({ dates, values }) {
   );
 }
 
-export default function ResultsDashboard({ results, roofAnalysis, solarData }) {
+export default function ResultsDashboard({ results, roofAnalysis, solarData, location, areaOverride }) {
   if (!results) return null;
 
   const handlePrint = () => {
     window.print();
   };
 
+  const formattedDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header bar with Print/Export */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-in fade-in duration-500 print:space-y-4">
+      {/* Print-Only Report Header */}
+      <div className="hidden print:block border-b border-slate-300 pb-4 mb-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-emerald-800">Skyield Feasibility Assessment Report</h1>
+            <p className="text-xs text-slate-600 mt-1">
+              Hyperlocal Microclimate, Solar Energy &amp; Rainwater Harvesting Analysis
+            </p>
+          </div>
+          <div className="text-right text-xs text-slate-600">
+            <p className="font-semibold text-slate-800">{formattedDate}</p>
+            <p>Assessment ID: SKY-{Math.abs(Math.round((location?.lat || 0) * 1000))}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-200 text-xs">
+          <div>
+            <span className="text-slate-500 font-medium">Coordinates: </span>
+            <span className="text-slate-900 font-mono">
+              {location ? `${location.lat.toFixed(4)}°, ${location.lng.toFixed(4)}°` : 'N/A'}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-500 font-medium">Usable Area: </span>
+            <span className="text-slate-900 font-semibold">{areaOverride || 50} m²</span>
+          </div>
+          <div>
+            <span className="text-slate-500 font-medium">Annual Irradiance: </span>
+            <span className="text-slate-900 font-semibold">
+              {solarData?.annual_avg_ghi_kwh_m2_day || 4.8} kWh/m²/day
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Screen Header bar with Print/Export (Hidden in print mode) */}
+      <div className="flex items-center justify-between print:hidden">
         <div className="flex items-center gap-2">
           <Sparkles size={18} className="text-emerald-400" />
           <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Property Assessment</h2>
