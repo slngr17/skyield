@@ -122,11 +122,24 @@ export function calculateLocal({
   const cost_low = Math.round(total_system_kw * 1000 * 2.0);
   const cost_high = Math.round(total_system_kw * 1000 * 3.0);
 
+  const trees_equivalent = Math.max(1, Math.round(carbon_offset / 21.77));
+  const avg_tariff_per_kwh = 0.16; // USD baseline global average
+  const annual_savings_usd = Math.round(annual_yield * avg_tariff_per_kwh);
+  const avg_cost = (cost_low + cost_high) / 2;
+  const payback_years = annual_savings_usd > 0 ? Math.max(2.0, Math.round((avg_cost / annual_savings_usd) * 10) / 10) : 5.0;
+  const water_independence_days = Math.round(rainwater / 150); // ~150L/day household water usage
+
   return {
     solar_yield_kwh_month: Math.round(monthly_yield * 10) / 10,
     solar_yield_kwh_year: Math.round(annual_yield * 10) / 10,
     rainwater_capture_liters_year: Math.round(rainwater),
     carbon_offset_kg_year: Math.round(carbon_offset * 10) / 10,
+    impact: {
+      trees_equivalent,
+      annual_savings_usd,
+      payback_years,
+      water_independence_days,
+    },
     hardware: {
       num_panels,
       panel_wattage_w: panel_wattage,

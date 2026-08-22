@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
-import { Search, Navigation, Layers, Loader2 } from 'lucide-react';
+import { Search, Navigation, Layers, Loader2, Sparkles } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -190,6 +190,33 @@ export default function MapPicker({ onLocationSelect }) {
           <Layers size={14} className="text-amber-400" />
           <span>{mapType === 'satellite' ? '🛰️ Satellite' : '🗺️ Streets'}</span>
         </button>
+      </div>
+
+      {/* Quick Demo Location Presets */}
+      <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none text-xs">
+        <span className="text-gray-500 shrink-0 text-[11px] font-medium flex items-center gap-1">
+          <Sparkles size={12} className="text-emerald-400" /> Demo:
+        </span>
+        {[
+          { name: '☀️ Lagos', lat: 6.5244, lng: 3.3792 },
+          { name: '🌱 Nairobi', lat: -1.2921, lng: 36.8219 },
+          { name: '⚡ Phoenix', lat: 33.4484, lng: -112.0740 },
+          { name: '🌧️ London', lat: 51.5074, lng: -0.1278 },
+          { name: '🌴 São Paulo', lat: -23.5505, lng: -46.6333 },
+        ].map((preset) => (
+          <button
+            key={preset.name}
+            type="button"
+            onClick={() => {
+              setTargetView({ center: [preset.lat, preset.lng], zoom: 17 });
+              handleLocationSelect({ lat: preset.lat, lng: preset.lng });
+              setSearchError('');
+            }}
+            className="shrink-0 bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/40 text-gray-300 hover:text-emerald-300 px-2 py-0.5 rounded-lg transition-all text-[11px]"
+          >
+            {preset.name}
+          </button>
+        ))}
       </div>
 
       {searchError && (

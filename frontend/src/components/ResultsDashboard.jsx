@@ -1,4 +1,4 @@
-import { Sun, Zap, Droplets, Leaf, AlertTriangle, Wrench, BarChart3 } from 'lucide-react';
+import { Sun, Zap, Droplets, Leaf, AlertTriangle, Wrench, BarChart3, TreePine, DollarSign, Clock, Printer, Sparkles } from 'lucide-react';
 import MetricCard from './MetricCard';
 
 function ConfidenceBadge({ level }) {
@@ -48,8 +48,28 @@ function IrradianceChart({ dates, values }) {
 export default function ResultsDashboard({ results, roofAnalysis, solarData }) {
   if (!results) return null;
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header bar with Print/Export */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles size={18} className="text-emerald-400" />
+          <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Property Assessment</h2>
+        </div>
+        <button
+          onClick={handlePrint}
+          type="button"
+          className="flex items-center gap-1.5 bg-white/5 hover:bg-white/15 border border-white/10 text-gray-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+        >
+          <Printer size={13} className="text-emerald-400" />
+          <span>Export / Print Report</span>
+        </button>
+      </div>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
@@ -81,6 +101,70 @@ export default function ResultsDashboard({ results, roofAnalysis, solarData }) {
           color="green"
         />
       </div>
+
+      {/* AI Sustainability & ROI Impact Card */}
+      {results.impact && (
+        <div className="glass-card p-5 border border-emerald-500/20 bg-gradient-to-br from-emerald-950/20 via-transparent to-teal-950/20">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-emerald-300 flex items-center gap-2">
+              <Sparkles size={16} className="text-emerald-400" />
+              AI Sustainability &amp; Financial Impact
+            </h3>
+            <span className="text-[11px] text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              EPA Standard Models
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
+                <TreePine size={14} className="text-emerald-400" />
+                <span>Trees Equivalent</span>
+              </div>
+              <p className="text-lg font-bold text-emerald-300">
+                {results.impact.trees_equivalent.toLocaleString()}
+                <span className="text-xs font-normal text-gray-400 ml-1">trees/yr</span>
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">carbon absorption match</p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
+                <DollarSign size={14} className="text-amber-400" />
+                <span>Est. Bill Savings</span>
+              </div>
+              <p className="text-lg font-bold text-amber-300">
+                ${results.impact.annual_savings_usd.toLocaleString()}
+                <span className="text-xs font-normal text-gray-400 ml-1">/year</span>
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">at standard utility tariff</p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
+                <Clock size={14} className="text-teal-400" />
+                <span>System Payback</span>
+              </div>
+              <p className="text-lg font-bold text-teal-300">
+                ~{results.impact.payback_years}
+                <span className="text-xs font-normal text-gray-400 ml-1">years</span>
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">estimated break-even</p>
+            </div>
+
+            <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-1">
+                <Droplets size={14} className="text-blue-400" />
+                <span>Water Supply</span>
+              </div>
+              <p className="text-lg font-bold text-blue-300">
+                {results.impact.water_independence_days.toLocaleString()}
+                <span className="text-xs font-normal text-gray-400 ml-1">days</span>
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">household usage offset</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Solar Irradiance Chart */}
       {solarData && (
