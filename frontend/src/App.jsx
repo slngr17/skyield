@@ -4,6 +4,7 @@ import MapPicker from './components/MapPicker';
 import ImageUploader from './components/ImageUploader';
 import BudgetSlider from './components/BudgetSlider';
 import ResultsDashboard from './components/ResultsDashboard';
+import Logo from './components/Logo';
 import { api, calculateLocal } from './services/api';
 
 export default function App() {
@@ -100,18 +101,12 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-emerald-600 to-teal-600 py-6 px-6 shadow-lg shadow-emerald-900/20">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <div className="bg-white/20 p-2.5 rounded-xl">
-            <Globe size={28} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-              Skyield
-            </h1>
-            <p className="text-emerald-100/80 text-sm mt-0.5">
-              Hyperlocal Microclimate & Solar Potential Analyzer
-            </p>
+      <header className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 py-5 px-6 shadow-lg shadow-emerald-950/30 border-b border-emerald-500/20">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Logo className="w-11 h-11" withText={true} />
+          <div className="hidden sm:flex items-center gap-2 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs text-emerald-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Live Microclimate Engine</span>
           </div>
         </div>
       </header>
