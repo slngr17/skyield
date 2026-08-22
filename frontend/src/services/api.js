@@ -93,17 +93,44 @@ export function calculateLocal({
   annual_rainfall_mm = 1200,
   shading_factor = 0.0,
   panel_wattage = 400,
-  panel_efficiency,
+  custom_panel_count = null,
+  inverter_type = 'string', // 'string' | 'hybrid' | 'micro'
   system_performance_ratio = 0.75,
   runoff_coefficient = 0.85,
 }) {
-  const panel_area = 2.0; // Standard 400W panel size in m²
-  const eff = panel_efficiency || (panel_wattage / (panel_area * 1000)); // ~20.0% for 400W
+  // Panel physical specifications
+  const panelSpecs = {
+    250: { area: 1.60, eff: 0.156, name: '250W Polycrystalline (Standard)' },
+    400: { area: 2.00, eff: 0.200, name: '400W Monocrystalline (High Efficiency)' },
+    550: { area: 2.55, eff: 0.216, name: '550W Commercial Tier-1 (Bifacial)' },
+  };
 
+  const selectedSpec = panelSpecs[panel_wattage] || panelSpecs[400];
+  const panel_area = selectedSpec.area;
+  const eff = selectedSpec.eff;
+
+  // Panel count: either manual override or auto-fit to roof area
+  const num_panels = custom_panel_count != null && custom_panel_count > 0
+    ? Math.round(custom_panel_count)
+    : Math.max(1, Math.floor(usable_area_sqm / panel_area));
+
+  const total_system_kw = (num_panels * panel_wattage) / 1000.0;
+  const effective_active_area = num_panels * panel_area;
+
+  // Inverter sizing & multiplier based on architecture
+  const inverterConfigs = {
+    string: { ilr: 0.90, name: 'Central String Inverter', costLow: 2.0, costHigh: 2.6 },
+    hybrid: { ilr: 0.85, name: 'Hybrid Storage-Ready Inverter', costLow: 2.4, costHigh: 3.2 },
+    micro: { ilr: 1.00, name: 'Enphase Microinverters (Module-Level MPPT)', costLow: 2.6, costHigh: 3.4 },
+  };
+
+  const invConfig = inverterConfigs[inverter_type] || inverterConfigs.string;
+  const inverter_size_kw = Math.max(1.0, Math.round(total_system_kw * invConfig.ilr * 10) / 10);
+
+  // Daily energy yield (kWh/day)
   const daily_yield =
-    usable_area_sqm *
+    total_system_kw *
     annual_avg_ghi_kwh_m2_day *
-    eff *
     system_performance_ratio *
     (1 - shading_factor);
 
@@ -112,15 +139,11 @@ export function calculateLocal({
 
   const rainwater = usable_area_sqm * annual_rainfall_mm * runoff_coefficient;
   const carbon_offset = annual_yield * 0.42;
+  const battery_capacity_kwh = daily_yield * (inverter_type === 'hybrid' ? 0.8 : 0.5);
 
-  const num_panels = Math.max(1, Math.ceil(usable_area_sqm / panel_area));
-  const total_system_kw = (num_panels * panel_wattage) / 1000.0;
-  // Inverter Loading Ratio (ILR): standard inverter is sized to 85-90% of DC capacity for peak efficiency
-  const inverter_size_kw = Math.max(1.0, Math.round(total_system_kw * 0.9 * 10) / 10);
-  const battery_capacity_kwh = daily_yield * 0.5;
-
-  const cost_low = Math.round(total_system_kw * 1000 * 2.0);
-  const cost_high = Math.round(total_system_kw * 1000 * 3.0);
+  // Turnkey installed system cost based on NREL/IRENA benchmarks
+  const cost_low = Math.round(total_system_kw * 1000 * invConfig.costLow);
+  const cost_high = Math.round(total_system_kw * 1000 * invConfig.costHigh);
 
   const trees_equivalent = Math.max(1, Math.round(carbon_offset / 21.77));
   const avg_tariff_per_kwh = 0.16; // USD baseline global average
@@ -143,10 +166,16 @@ export function calculateLocal({
     hardware: {
       num_panels,
       panel_wattage_w: panel_wattage,
+      panel_type_name: selectedSpec.name,
+      panel_efficiency_pct: Math.round(eff * 1000) / 10,
+      effective_active_area_sqm: Math.round(effective_active_area * 10) / 10,
+      inverter_type,
+      inverter_name: invConfig.name,
       total_system_kw: Math.round(total_system_kw * 10) / 10,
       inverter_size_kw,
       battery_capacity_kwh: Math.round(battery_capacity_kwh * 10) / 10,
       estimated_cost_usd: `$${cost_low.toLocaleString()} - $${cost_high.toLocaleString()}`,
+      cost_benchmark_note: 'Based on NREL & IRENA global residential turnkey PV standards ($2.00–$3.40/W installed).',
     },
   };
 }

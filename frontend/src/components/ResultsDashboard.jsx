@@ -267,43 +267,59 @@ export default function ResultsDashboard({ results, roofAnalysis, solarData, loc
       {/* Hardware Recommendation */}
       {results.hardware && (
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-            <Wrench size={16} className="text-emerald-400" />
-            Recommended Hardware Kit
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              <Wrench size={16} className="text-emerald-400" />
+              Configured Hardware Kit
+            </h3>
+            <span className="text-xs text-gray-400 bg-white/5 px-2.5 py-0.5 rounded-lg border border-white/10">
+              {results.hardware.inverter_name}
+            </span>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">Solar Panels</p>
+              <p className="text-xs text-gray-500 mb-0.5">Solar Modules</p>
               <p className="text-lg font-bold text-gray-200">
                 {results.hardware.num_panels}
                 <span className="text-xs text-gray-500 ml-1">× {results.hardware.panel_wattage_w}W</span>
               </p>
+              <p className="text-[10px] text-emerald-400/80 mt-0.5 truncate">{results.hardware.panel_type_name}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">System Size</p>
+              <p className="text-xs text-gray-500 mb-0.5">DC Array Size</p>
               <p className="text-lg font-bold text-gray-200">
                 {results.hardware.total_system_kw.toFixed(1)}
                 <span className="text-xs text-gray-500 ml-1">kW</span>
               </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{results.hardware.effective_active_area_sqm} m² footprint</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">Inverter</p>
+              <p className="text-xs text-gray-500 mb-0.5">Inverter Unit</p>
               <p className="text-lg font-bold text-gray-200">
                 {results.hardware.inverter_size_kw.toFixed(1)}
                 <span className="text-xs text-gray-500 ml-1">kW</span>
               </p>
+              <p className="text-[10px] text-teal-400/80 mt-0.5 truncate">{results.hardware.inverter_type.toUpperCase()} Arch</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">Battery</p>
+              <p className="text-xs text-gray-500 mb-0.5">Battery Reserve</p>
               <p className="text-lg font-bold text-gray-200">
                 {results.hardware.battery_capacity_kwh.toFixed(1)}
                 <span className="text-xs text-gray-500 ml-1">kWh</span>
               </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">daily buffer</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-0.5">Est. Cost</p>
+              <p className="text-xs text-gray-500 mb-0.5">Turnkey Installed Cost</p>
               <p className="text-lg font-bold text-emerald-400">{results.hardware.estimated_cost_usd}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">NREL standard</p>
             </div>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-500">
+            <span>{results.hardware.cost_benchmark_note}</span>
+            <span className="text-emerald-500/80 font-medium">Turnkey Hardware + BOS + Labor</span>
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sun, MapPin, Camera, Loader2, AlertCircle, Globe } from 'lucide-react';
 import MapPicker from './components/MapPicker';
 import ImageUploader from './components/ImageUploader';
-import BudgetSlider from './components/BudgetSlider';
+import HardwareCustomizer from './components/HardwareCustomizer';
 import ResultsDashboard from './components/ResultsDashboard';
 import Logo from './components/Logo';
 import { api, calculateLocal } from './services/api';
@@ -14,6 +14,9 @@ export default function App() {
   const [solarData, setSolarData] = useState(null);
   const [roofAnalysis, setRoofAnalysis] = useState(null);
   const [areaOverride, setAreaOverride] = useState(50);
+  const [panelWattage, setPanelWattage] = useState(400);
+  const [inverterType, setInverterType] = useState('string');
+  const [customPanelCount, setCustomPanelCount] = useState(null);
   const [loadingSolar, setLoadingSolar] = useState(false);
   const [loadingRoof, setLoadingRoof] = useState(false);
   const [error, setError] = useState(null);
@@ -50,8 +53,11 @@ export default function App() {
       annual_avg_ghi_kwh_m2_day: solarData.annual_avg_ghi_kwh_m2_day,
       annual_rainfall_mm: solarData.annual_rainfall_mm,
       shading_factor: shading,
+      panel_wattage: panelWattage,
+      inverter_type: inverterType,
+      custom_panel_count: customPanelCount,
     });
-  }, [solarData, areaOverride, roofAnalysis]);
+  }, [solarData, areaOverride, roofAnalysis, panelWattage, inverterType, customPanelCount]);
 
   // Handle file upload with memory management
   const handleFileSelect = useCallback((file) => {
@@ -113,7 +119,7 @@ export default function App() {
 
       {/* Error Banner */}
       {error && (
-        <div className="bg-red-500/10 border-b border-red-500/20 px-6 py-3">
+        <div className="bg-red-500/10 border-b border-red-500/20 px-6 py-3 print:hidden">
           <div className="max-w-7xl mx-auto flex items-center gap-2 text-red-400 text-sm">
             <AlertCircle size={16} />
             {error}
@@ -142,6 +148,23 @@ export default function App() {
                 <MapPicker onLocationSelect={setLocation} />
               </section>
 
+              {/* Hardware Configurator & Area Slider */}
+              {solarData && (
+                <section>
+                  <HardwareCustomizer
+                    area={areaOverride}
+                    onAreaChange={setAreaOverride}
+                    panelWattage={panelWattage}
+                    onPanelWattageChange={setPanelWattage}
+                    inverterType={inverterType}
+                    onInverterTypeChange={setInverterType}
+                    customPanelCount={customPanelCount}
+                    onCustomPanelCountChange={setCustomPanelCount}
+                    hardwareResults={results?.hardware}
+                  />
+                </section>
+              )}
+
               {/* Upload Section */}
               <section>
                 <div className="flex items-center gap-2 mb-3">
@@ -158,13 +181,6 @@ export default function App() {
                   onClear={handleClearImage}
                 />
               </section>
-
-              {/* Area Slider */}
-              {solarData && (
-                <section>
-                  <BudgetSlider value={areaOverride} onChange={setAreaOverride} />
-                </section>
-              )}
             </div>
 
             {/* Right Column: Results (Full-width in print report) */}
