@@ -4,7 +4,7 @@ import MapPicker from './components/MapPicker';
 import ImageUploader from './components/ImageUploader';
 import BudgetSlider from './components/BudgetSlider';
 import ResultsDashboard from './components/ResultsDashboard';
-import { api } from './services/api';
+import { api, calculateLocal } from './services/api';
 
 export default function App() {
   const [location, setLocation] = useState(null);
@@ -44,7 +44,7 @@ export default function App() {
     if (!solarData) return null;
     const area = areaOverride;
     const shading = roofAnalysis ? roofAnalysis.shading_factor : 0.0;
-    return api.calculate({
+    return calculateLocal({
       usable_area_sqm: area,
       annual_avg_ghi_kwh_m2_day: solarData.annual_avg_ghi_kwh_m2_day,
       annual_rainfall_mm: solarData.annual_rainfall_mm,
@@ -217,7 +217,7 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-4 px-6 mt-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-gray-600">
-          <span>Built for the <span className="text-emerald-500 font-medium">AI 4 Earth Hackathon</span></span>
+          <span>© {new Date().getFullYear()} Skyield</span>
           <span>
             Data from <a href="https://open-meteo.com" className="text-gray-400 hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · AI by <a href="https://ai.google.dev" className="text-gray-400 hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">Google Gemini</a>
           </span>
